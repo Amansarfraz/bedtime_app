@@ -1,118 +1,9 @@
-// Flutter 2-Screen App: AI Bedtime Story Generator
-// pubspec.yaml dependencies:
-//   http: ^0.13.6
-//   lottie: ^2.3.0
-//   flutter_tts: ^3.6.0
-//   share_plus: ^6.3.0
-//   animated_text_kit: ^4.2.2
-//
-// Run: flutter pub get && flutter run
-
-import 'dart:convert';
+import 'dart:convert'; // for jsonEncode, jsonDecode
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:share_plus/share_plus.dart';
-
-void main() => runApp(const BedtimeApp());
-
-class BedtimeApp extends StatelessWidget {
-  const BedtimeApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'AI Bedtime Stories',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.purple,
-        brightness: Brightness.light,
-        useMaterial3: true,
-      ),
-      home: const StorySearchPage(),
-    );
-  }
-}
-
-/// SCREEN 1: Search
-class StorySearchPage extends StatelessWidget {
-  const StorySearchPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final TextEditingController searchController = TextEditingController(
-      text: 'The Brave Little Lion',
-    );
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDF6F9),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-              Lottie.network(
-                'https://assets5.lottiefiles.com/packages/lf20_jtbfg2nb.json',
-                width: 220,
-                height: 220,
-                fit: BoxFit.cover,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                "AI Bedtime Story Generator",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple[800],
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  hintText: "Enter story title...",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  prefixIcon: const Icon(Icons.search),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 20,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  final title = searchController.text.trim();
-                  if (title.isEmpty) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => StoryPage(storyTitle: title),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text("Generate Story"),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// SCREEN 2: Story Generator with Cartoon Background
 class StoryPage extends StatefulWidget {
@@ -230,13 +121,13 @@ class _StoryPageState extends State<StoryPage> {
         decoration: const BoxDecoration(
           image: DecorationImage(
             image: NetworkImage(
-              "https://i.ibb.co/ZhM9mZq/bedtime-cartoon-bg.jpg",
+              "https://i.ibb.co/ZhM9mZq/bedtime-cartoon-bg.jpg", // Cartoon background
             ),
             fit: BoxFit.cover,
           ),
         ),
         child: Container(
-          color: Colors.black.withOpacity(0.3), // overlay
+          color: Colors.black.withOpacity(0.3), // Dark overlay
           child: SafeArea(
             child: _loading
                 ? Center(

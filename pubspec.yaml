@@ -32,18 +32,20 @@ dependencies:
     sdk: flutter
   
   # Networking (API calls)
+
+  # For API calls (HTTP requests)
   http: ^0.13.6
 
-  # Cartoon animations
+  # For animations (cartoon style Lottie animations)
   lottie: ^2.3.0
 
-  # Text-to-Speech
+  # For text-to-speech (Play/Stop story)
   flutter_tts: ^3.6.0
 
-  # Share button (story share karne ke liye)
+  # For sharing the story
   share_plus: ^6.3.0
 
-  # Animated text effects
+  # For animated text effects (typing effect etc.)
   animated_text_kit: ^4.2.2
 
   # The following adds the Cupertino Icons font to your application.
