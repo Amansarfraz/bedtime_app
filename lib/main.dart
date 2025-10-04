@@ -1,317 +1,76 @@
-// Flutter 2-Screen App: AI Bedtime Story Generator
-// pubspec.yaml dependencies:
-//   http: ^0.13.6
-//   lottie: ^2.3.0
-//   flutter_tts: ^3.6.0
-//   share_plus: ^6.3.0
-//   animated_text_kit: ^4.2.2
-//
-// Run: flutter pub get && flutter run
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:lottie/lottie.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:share_plus/share_plus.dart';
 
-void main() => runApp(const BedtimeApp());
+void main() => runApp(const PollinationsFeedApp());
 
-class BedtimeApp extends StatelessWidget {
-  const BedtimeApp({super.key});
+class PollinationsFeedApp extends StatelessWidget {
+  const PollinationsFeedApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'AI Bedtime Stories',
+    return const MaterialApp(
+      home: ImageFeedScreen(),
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.purple,
-        brightness: Brightness.light,
-        useMaterial3: true,
-      ),
-      home: const StorySearchPage(),
     );
   }
 }
 
-/// SCREEN 1: Search
-class StorySearchPage extends StatelessWidget {
-  const StorySearchPage({super.key});
+class ImageFeedScreen extends StatefulWidget {
+  const ImageFeedScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final TextEditingController searchController = TextEditingController(
-      text: 'The Brave Little Lion',
-    );
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDF6F9),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-              Lottie.network(
-                'https://assets5.lottiefiles.com/packages/lf20_jtbfg2nb.json',
-                width: 220,
-                height: 220,
-                fit: BoxFit.cover,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                "AI Bedtime Story Generator",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.purple[800],
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: searchController,
-                decoration: InputDecoration(
-                  hintText: "Enter story title...",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  prefixIcon: const Icon(Icons.search),
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 20,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  final title = searchController.text.trim();
-                  if (title.isEmpty) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => StoryPage(storyTitle: title),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text("Generate Story"),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  State<ImageFeedScreen> createState() => _ImageFeedScreenState();
 }
 
-/// SCREEN 2: Story Generator with Cartoon Background
-class StoryPage extends StatefulWidget {
-  final String storyTitle;
-  const StoryPage({super.key, required this.storyTitle});
-
-  @override
-  State<StoryPage> createState() => _StoryPageState();
-}
-
-class _StoryPageState extends State<StoryPage> {
-  final FlutterTts _tts = FlutterTts();
-  String _story = '';
-  bool _loading = false;
-
-  static const String API_ENDPOINT =
-      'https://api-inference.huggingface.co/models/gpt2';
-  static const String API_KEY = ''; // optional
-
-  Future<String> _generateStory(String prompt) async {
-    final uri = Uri.parse(API_ENDPOINT);
-    final body = jsonEncode({
-      'inputs': prompt,
-      'parameters': {'max_new_tokens': 300, 'temperature': 0.8},
-    });
-
-    final headers = {
-      'Content-Type': 'application/json',
-      if (API_KEY.isNotEmpty) 'Authorization': 'Bearer $API_KEY',
-    };
-
-    final resp = await http.post(uri, headers: headers, body: body);
-
-    if (resp.statusCode >= 200 && resp.statusCode < 300) {
-      final data = jsonDecode(resp.body);
-
-      if (data is List &&
-          data.isNotEmpty &&
-          data[0]['generated_text'] != null) {
-        return data[0]['generated_text'] as String;
-      }
-
-      if (data is Map && data['generated_text'] != null) {
-        return data['generated_text'] as String;
-      }
-
-      return resp.body;
-    } else {
-      throw Exception('API error ${resp.statusCode}: ${resp.body}');
-    }
-  }
-
-  Future<void> _fetchStory() async {
-    final prompt =
-        'Write a gentle, imaginative bedtime story in English titled "${widget.storyTitle}". '
-        'Keep it short (3–5 paragraphs), easy for kids, and end with a clear moral.';
-
-    setState(() {
-      _loading = true;
-      _story = '';
-    });
-
-    try {
-      final generated = await _generateStory(prompt);
-      String clean = generated;
-
-      if (clean.startsWith(widget.storyTitle)) {
-        clean = clean.replaceFirst(widget.storyTitle, '').trim();
-      }
-
-      final paras = clean
-          .split(RegExp(r'\n+'))
-          .where((p) => p.trim().isNotEmpty)
-          .toList();
-      final display = paras.take(6).join('\n\n');
-
-      setState(() {
-        _story = display + '\n\nMoral: Always be kind and brave.';
-      });
-
-      await _tts.setLanguage('en-US');
-      await _tts.setSpeechRate(0.45);
-      await _tts.speak(_story);
-    } catch (e) {
-      setState(() {
-        _story = 'Error generating story: ${e.toString()}';
-      });
-    } finally {
-      setState(() {
-        _loading = false;
-      });
-    }
-  }
+class _ImageFeedScreenState extends State<ImageFeedScreen> {
+  List<dynamic> images = [];
+  bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchStory();
+    fetchFeed();
   }
 
-  @override
-  void dispose() {
-    _tts.stop();
-    super.dispose();
+  Future<void> fetchFeed() async {
+    final response = await http.get(Uri.parse('https://image.pollinations.ai/feed'));
+    if (response.statusCode == 200) {
+      setState(() {
+        images = jsonDecode(response.body);
+        loading = false;
+      });
+    } else {
+      setState(() => loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.storyTitle),
-        backgroundColor: Colors.purple[200],
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: NetworkImage(
-              "https://i.ibb.co/ZhM9mZq/bedtime-cartoon-bg.jpg",
-            ),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: Container(
-          color: Colors.black.withOpacity(0.3), // overlay
-          child: SafeArea(
-            child: _loading
-                ? Center(
-                    child: Lottie.network(
-                      'https://assets1.lottiefiles.com/packages/lf20_myejiggj.json',
-                      width: 200,
-                      height: 200,
-                    ),
-                  )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          widget.storyTitle,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _story,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                          textAlign: TextAlign.justify,
-                        ),
-                        const SizedBox(height: 20),
-                        Wrap(
-                          spacing: 10,
-                          children: [
-                            ElevatedButton.icon(
-                              onPressed: () async {
-                                await _tts.stop();
-                                await _tts.speak(_story);
-                              },
-                              icon: const Icon(Icons.play_arrow),
-                              label: const Text('Play'),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: () async {
-                                await _tts.stop();
-                              },
-                              icon: const Icon(Icons.stop),
-                              label: const Text('Stop'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey[300],
-                                foregroundColor: Colors.black,
-                              ),
-                            ),
-                            ElevatedButton.icon(
-                              onPressed: () async {
-                                await Share.share(
-                                  '${widget.storyTitle}\n\n$_story',
-                                );
-                              },
-                              icon: const Icon(Icons.share),
-                              label: const Text('Share'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.purple[50],
-                                foregroundColor: Colors.purple[800],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+      appBar: AppBar(title: const Text("Pollinations Feed"), backgroundColor: Colors.blueAccent),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : GridView.builder(
+              padding: const EdgeInsets.all(10),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+              ),
+              itemCount: images.length,
+              itemBuilder: (context, index) {
+                final img = images[index];
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    img['url'] ?? '',
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stack) => const Icon(Icons.error),
                   ),
-          ),
-        ),
-      ),
+                );
+              },
+            ),
     );
   }
 }
