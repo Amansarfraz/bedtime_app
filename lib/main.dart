@@ -1,76 +1,101 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
-void main() => runApp(const PollinationsFeedApp());
+void main() => runApp(const PollinationsImageApp());
 
-class PollinationsFeedApp extends StatelessWidget {
-  const PollinationsFeedApp({super.key});
+class PollinationsImageApp extends StatelessWidget {
+  const PollinationsImageApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: ImageFeedScreen(),
       debugShowCheckedModeBanner: false,
+      home: ImageSearchScreen(),
     );
   }
 }
 
-class ImageFeedScreen extends StatefulWidget {
-  const ImageFeedScreen({super.key});
+class ImageSearchScreen extends StatefulWidget {
+  const ImageSearchScreen({super.key});
 
   @override
-  State<ImageFeedScreen> createState() => _ImageFeedScreenState();
+  State<ImageSearchScreen> createState() => _ImageSearchScreenState();
 }
 
-class _ImageFeedScreenState extends State<ImageFeedScreen> {
-  List<dynamic> images = [];
-  bool loading = true;
+class _ImageSearchScreenState extends State<ImageSearchScreen> {
+  final TextEditingController _controller = TextEditingController();
+  String? imageUrl;
+  bool isLoading = false;
 
-  @override
-  void initState() {
-    super.initState();
-    fetchFeed();
-  }
+  void _searchImage() {
+    final prompt = _controller.text.trim();
+    if (prompt.isEmpty) return;
 
-  Future<void> fetchFeed() async {
-    final response = await http.get(Uri.parse('https://image.pollinations.ai/feed'));
-    if (response.statusCode == 200) {
+    setState(() {
+      isLoading = true;
+      imageUrl = null;
+    });
+
+    final url =
+        'https://image.pollinations.ai/prompt/${Uri.encodeComponent(prompt)}';
+    // Since Pollinations returns direct image, no need to fetch JSON
+    Future.delayed(const Duration(seconds: 2), () {
       setState(() {
-        images = jsonDecode(response.body);
-        loading = false;
+        imageUrl = url;
+        isLoading = false;
       });
-    } else {
-      setState(() => loading = false);
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Pollinations Feed"), backgroundColor: Colors.blueAccent),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : GridView.builder(
-              padding: const EdgeInsets.all(10),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
+      appBar: AppBar(
+        title: const Text('AI Image Generator'),
+        backgroundColor: Colors.blueAccent,
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: _controller,
+              decoration: InputDecoration(
+                hintText: 'Enter something like "cute panda on skateboard"',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: _searchImage,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                ),
               ),
-              itemCount: images.length,
-              itemBuilder: (context, index) {
-                final img = images[index];
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    img['url'] ?? '',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stack) => const Icon(Icons.error),
-                  ),
-                );
-              },
             ),
+            const SizedBox(height: 20),
+            if (isLoading)
+              const CircularProgressIndicator()
+            else if (imageUrl != null)
+              Expanded(
+                child: Image.network(
+                  imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) =>
+                      const Text('Error loading image'),
+                ),
+              )
+            else
+              const Expanded(
+                child: Center(
+                  child: Text(
+                    'Type something and tap search to generate an image!',
+                    style: TextStyle(color: Colors.black54, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
