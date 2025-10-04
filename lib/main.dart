@@ -1,98 +1,102 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
-void main() => runApp(const PollinationsImageApp());
+void main() => runApp(const VoiceToTextApp());
 
-class PollinationsImageApp extends StatelessWidget {
-  const PollinationsImageApp({super.key});
+class VoiceToTextApp extends StatelessWidget {
+  const VoiceToTextApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: ImageSearchScreen(),
+      home: VoiceHome(),
     );
   }
 }
 
-class ImageSearchScreen extends StatefulWidget {
-  const ImageSearchScreen({super.key});
+class VoiceHome extends StatefulWidget {
+  const VoiceHome({super.key});
 
   @override
-  State<ImageSearchScreen> createState() => _ImageSearchScreenState();
+  State<VoiceHome> createState() => _VoiceHomeState();
 }
 
-class _ImageSearchScreenState extends State<ImageSearchScreen> {
-  final TextEditingController _controller = TextEditingController();
-  String? imageUrl;
-  bool isLoading = false;
+class _VoiceHomeState extends State<VoiceHome> {
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+  String _text = "Tap the mic and start speaking...";
+  double _confidence = 1.0;
 
-  void _searchImage() {
-    final prompt = _controller.text.trim();
-    if (prompt.isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+  }
 
-    setState(() {
-      isLoading = true;
-      imageUrl = null;
-    });
-
-    final url =
-        'https://image.pollinations.ai/prompt/${Uri.encodeComponent(prompt)}';
-    // Since Pollinations returns direct image, no need to fetch JSON
-    Future.delayed(const Duration(seconds: 2), () {
-      setState(() {
-        imageUrl = url;
-        isLoading = false;
-      });
-    });
+  void _listen() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize();
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (result) => setState(() {
+            _text = result.recognizedWords;
+            _confidence = result.confidence;
+          }),
+        );
+      }
+    } else {
+      setState(() => _isListening = false);
+      _speech.stop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('AI Image Generator'),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Colors.deepPurple,
+        title: const Text('Voice to Text AI App'),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            TextField(
-              controller: _controller,
-              decoration: InputDecoration(
-                hintText: 'Enter something like "cute panda on skateboard"',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: _searchImage,
+            Text(
+              "Confidence: ${(_confidence * 100.0).toStringAsFixed(1)}%",
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 6,
+                      offset: Offset(2, 2),
+                    ),
+                  ],
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
+                child: SingleChildScrollView(
+                  reverse: true,
+                  child: Text(_text, style: const TextStyle(fontSize: 20)),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            if (isLoading)
-              const CircularProgressIndicator()
-            else if (imageUrl != null)
-              Expanded(
-                child: Image.network(
-                  imageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stack) =>
-                      const Text('Error loading image'),
-                ),
-              )
-            else
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    'Type something and tap search to generate an image!',
-                    style: TextStyle(color: Colors.black54, fontSize: 16),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
+            FloatingActionButton(
+              onPressed: _listen,
+              backgroundColor: _isListening ? Colors.red : Colors.deepPurple,
+              child: Icon(_isListening ? Icons.mic : Icons.mic_none, size: 28),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
